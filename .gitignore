@@ -1,3 +1,4 @@
 .vscode
 
-/DatingAppBackend/settings.py
+DatingAppBackend/.env
+DatingAppBackend/__pycache__
