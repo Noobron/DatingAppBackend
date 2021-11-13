@@ -1,0 +1,6 @@
+Django==3.2.9
+django_environ==0.8.1
+djangorestframework==3.12.4
+djangorestframework_simplejwt==5.0.0
+environ==1.0
+psycopg2
