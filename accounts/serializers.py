@@ -4,22 +4,46 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, Toke
 from accounts.models import User
 
 
-class UserSerializer(serializers.HyperlinkedModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
+    """
+    Serializer for handling `User`
+    """
     class Meta:
         model = User
-        fields = ['username', 'pk']
+        fields = ['username', 'pk', 'first_name', 'last_name']
 
 
-class UserDetailsSerializer(serializers.HyperlinkedModelSerializer):
+class RegisterSerializer(serializers.ModelSerializer):
+    """
+    Serializer for handling new `User`
+    """
+
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'pk']
+        fields = ('id', 'username', 'password', 'first_name', 'last_name')
+        extra_kwargs = {
+            'password': {
+                'write_only': True
+            },
+        }
+
+    def create(self, validated_data):
+        user = User.objects.create_user(username=validated_data['username'],
+                                        password=validated_data['password'])
+
+        user.first_name = validated_data['first_name']
+        user.last_name = validated_data['last_name']
+
+        user.save()
+
+        return user
 
 
 class TokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     Custom Token Sreializer for access token
     """
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -33,6 +57,7 @@ class TokenRefreshSerializer(TokenRefreshSerializer):
     """
     Custom Token Sreializer for refresh token
     """
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)

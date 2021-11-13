@@ -36,7 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.admin', 'django.contrib.auth',
     'django.contrib.contenttypes', 'django.contrib.sessions',
     'django.contrib.messages', 'django.contrib.staticfiles', 'rest_framework',
-    'sslserver', 'accounts'
+    'sslserver', 'accounts', 'corsheaders'
 ]
 
 MIDDLEWARE = [
@@ -47,7 +47,12 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'DatingAppBackend.urls'
 
@@ -111,7 +116,6 @@ REST_FRAMEWORK = {
     ],
 }
 
-
 AUTH_USER_MODEL = 'accounts.User'
 
 # Internationalization
@@ -136,7 +140,6 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 
 from datetime import timedelta
 

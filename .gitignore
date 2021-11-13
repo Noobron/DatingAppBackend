@@ -1,4 +1,7 @@
 .vscode
 
 DatingAppBackend/.env
-DatingAppBackend/__pycache__
+
+**/__pycache__
+
+ssl/*

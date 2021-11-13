@@ -1,28 +1,49 @@
+from django.http.response import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework.views import APIView
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 
 from .models import User
-from .serializers import UserSerializer, TokenObtainPairSerializer, TokenRefreshSerializer, UserDetailsSerializer
+from .serializers import UserSerializer, TokenObtainPairSerializer, TokenRefreshSerializer, RegisterSerializer
 
 
-class UsersList(APIView):
-    permission_classes = (IsAdminUser, )
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_users(request, id=None, *args, **kwargs):
+    """
+    Gets details of all or single `User`
+    """
 
-    def get(self, request, id=None):
-        """
-        Action which provides response as list of all `User` or a specific `User` based on `id`
-        """
-        if id is None:
-            data = User.objects.all()
-            serializer = UserSerializer(data, many=True)
-        else:
-            data = get_object_or_404(User, pk=id)
-            serializer = UserDetailsSerializer(data)
+    serializer_context = {
+        'request': request,
+    }
 
-        return Response(serializer.data)
+    if id is None:
+        data = User.objects.all()
+        serializer = UserSerializer(data,
+                                    many=True,
+                                    context=serializer_context)
+    else:
+        data = get_object_or_404(User, pk=id)
+        serializer = UserSerializer(data, context=serializer_context)
+
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+def register(request, *args, **kwargs):
+    """
+    Registers new `User`
+    """
+
+    serializer = RegisterSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    serializer.save()
+
+    return HttpResponse(serializer.data)
 
 
 class TokenRefreshView(TokenRefreshView):
