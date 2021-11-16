@@ -5,3 +5,5 @@ DatingAppBackend/.env
 **/__pycache__
 
 ssl/*
+
+logs

@@ -1,4 +1,5 @@
 from django.http.response import HttpResponse
+import json
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -43,7 +44,7 @@ def register(request, *args, **kwargs):
 
     serializer.save()
 
-    return HttpResponse(serializer.data)
+    return HttpResponse(json.dumps(serializer.data))
 
 
 class TokenRefreshView(TokenRefreshView):
