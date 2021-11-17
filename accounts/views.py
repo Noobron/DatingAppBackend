@@ -1,7 +1,7 @@
 from django.http.response import HttpResponse
 import json
 from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.permissions import IsAuthenticated
@@ -34,6 +34,7 @@ def get_users(request, id=None, *args, **kwargs):
 
 
 @api_view(['POST'])
+@authentication_classes([])
 def register(request, *args, **kwargs):
     """
     Registers new `User`
