@@ -6,4 +6,8 @@ DatingAppBackend/.env
 
 ssl/*
 
-logs
+logs/*
+!logs/.gitkeep 
+
+media/*
+!media/.gitkeep 

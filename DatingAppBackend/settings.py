@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import environ
+from datetime import timedelta
 
 # Initialise environment variables
 env = environ.Env()
@@ -48,7 +49,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-
     'middlewares.error_handler.ErrorHandlerMiddleware'
 ]
 
@@ -116,6 +116,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    'DATE_INPUT_FORMATS': ['iso-8601', '%Y-%m-%dT%H:%M:%S.%fZ'],
 }
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -143,6 +144,7 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+#setting for logging
 
 LOGGING = {
     'version': 1,
@@ -162,8 +164,6 @@ LOGGING = {
         },
     },
 }
-
-from datetime import timedelta
 
 # customizing JWT Token settings
 
@@ -193,3 +193,9 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
+
+# specifiying the file to saved in `media` directory
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# files are going to be available on the client side through `files` directory
+MEDIA_URL = '/files/'

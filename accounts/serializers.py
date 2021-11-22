@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 
-from accounts.models import User
+from accounts.models import Photo, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -10,14 +10,23 @@ class UserSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = User
-        fields = ['username', 'pk', 'first_name', 'last_name']
+        fields = '__all__'
+
+
+class PhotoSerializer(serializers.ModelSerializer):
+    """
+    Serializer for handling new `Photo`
+    """
+
+    class Meta:
+        model = Photo
+        fields = ('image', 'user')
 
 
 class RegisterSerializer(serializers.ModelSerializer):
     """
     Serializer for handling new `User`
     """
-
     class Meta:
         model = User
         fields = ('id', 'username', 'password', 'first_name', 'last_name')
@@ -43,7 +52,6 @@ class TokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     Custom Token Sreializer for access token
     """
-
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
@@ -57,7 +65,6 @@ class TokenRefreshSerializer(TokenRefreshSerializer):
     """
     Custom Token Sreializer for refresh token
     """
-
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)

@@ -1,8 +1,7 @@
-from django.core import validators
+from datetime import datetime
 from django.core.validators import MinLengthValidator
 from django.db import models
 from django.contrib.auth.models import (BaseUserManager, AbstractBaseUser)
-
 
 
 class UserManager(BaseUserManager):
@@ -39,13 +38,20 @@ class UserManager(BaseUserManager):
         return user
 
 
+def upload_main_photo(instance):
+    # file will be uploaded to MEDIA_ROOT/<user_id>/profile.png
+    return '{0}/profile.png'.format(instance.user.id)
+
+
 class User(AbstractBaseUser):
     """
     Custom `User` Model for handling accounts in the backend
     """
 
     # unique user name of the user
-    username = models.CharField(validators=[MinLengthValidator(3)], max_length=50, unique=True)
+    username = models.CharField(validators=[MinLengthValidator(3)],
+                                max_length=50,
+                                unique=True)
 
     # first name of the user
     first_name = models.CharField(validators=[MinLengthValidator(3)],
@@ -56,6 +62,36 @@ class User(AbstractBaseUser):
     last_name = models.CharField(validators=[MinLengthValidator(3)],
                                  verbose_name='last_name',
                                  max_length=75)
+
+    # date of birth of the user
+    date_of_birth = models.DateField(null=True)
+
+    # day on which user created the account
+    date_of_creation = models.DateField(default=datetime.today)
+
+    # last time user was active
+    last_active = models.DateTimeField(default=datetime.now)
+
+    # preferred gender of the user
+    gender = models.CharField(max_length=25, default='Not Disclosed')
+
+    # introduction of the  user
+    introduction = models.CharField(max_length=250, null=True)
+
+    # looking for preference
+    looking_for = models.CharField(max_length=50, null=True)
+
+    # interests of the user
+    interests = models.CharField(max_length=50, null=True)
+
+    # city of the user
+    city = models.CharField(max_length=40, null=True)
+
+    # country of the user
+    country = models.CharField(max_length=40, null=True)
+
+    # main photo of the user
+    main_photo = models.ImageField(upload_to=upload_main_photo, null=True)
 
     # field to get user activation status
     is_active = models.BooleanField(default=True)
@@ -74,3 +110,20 @@ class User(AbstractBaseUser):
         Returns a string representation of this `User` by providing username.
         """
         return self.username
+
+
+def user_photos_path(instance, filename):
+    # file will be uploaded to MEDIA_ROOT/<user_id>/photos/<filename>
+    return '{0}/photos/{1}'.format(instance.user.id, filename)
+
+
+class Photo(models.Model):
+    """
+    Class for sotring images uploaded by user in their profile
+    """
+
+    # user field
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    # image uploaded by user
+    image = models.ImageField(upload_to=user_photos_path)
