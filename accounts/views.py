@@ -99,10 +99,17 @@ def add_photo(request, *args, **kwargs):
 
     serializer = PhotoSerializer(instance=photo, data=request.data)
 
-    if(serializer.is_valid(raise_exception=True)):
+    if (serializer.is_valid(raise_exception=True)):
         photo.save()
 
     return HttpResponse(json.dumps({'message': "Uploaded"}), status=200)
+
+
+@authentication_classes([])
+def deleteJWTToken(request):
+    response = HttpResponse()
+    response.delete_cookie("refresh_token", path="/")
+    return response
 
 
 @api_view(['POST'])
@@ -123,6 +130,26 @@ def register(request, *args, **kwargs):
 class TokenRefreshView(TokenRefreshView):
     serializer_class = TokenRefreshSerializer
 
+    def finalize_response(self, request, response, *args, **kwargs):
+        if response.data.get('refresh'):
+            response.set_cookie('refresh_token',
+                                response.data['refresh'],
+                                httponly=True,
+                                samesite='Lax',
+                                secure=True)
+            del response.data['refresh']
+        return super().finalize_response(request, response, *args, **kwargs)
+
 
 class TokenObtainPairView(TokenObtainPairView):
     serializer_class = TokenObtainPairSerializer
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        if response.data.get('refresh'):
+            response.set_cookie('refresh_token',
+                                response.data['refresh'],
+                                httponly=True,
+                                samesite='Lax',
+                                secure=True)
+            del response.data['refresh']
+        return super().finalize_response(request, response, *args, **kwargs)

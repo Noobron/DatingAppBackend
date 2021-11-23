@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.exceptions import InvalidToken
 
 from accounts.models import Photo, User
 
@@ -17,7 +18,6 @@ class PhotoSerializer(serializers.ModelSerializer):
     """
     Serializer for handling new `Photo`
     """
-
     class Meta:
         model = Photo
         fields = ('image', 'user')
@@ -65,6 +65,17 @@ class TokenRefreshSerializer(TokenRefreshSerializer):
     """
     Custom Token Sreializer for refresh token
     """
+
+    refresh = None
+
+    def validate(self, attrs):
+        attrs['refresh'] = self.context['request'].COOKIES.get('refresh_token')
+        if attrs['refresh']:
+            return super().validate(attrs)
+        else:
+            raise InvalidToken(
+                'No valid token found in cookie \'refresh_token\'')
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)

@@ -9,6 +9,7 @@ urlpatterns = [
     path('login/refresh/',
          views.TokenRefreshView.as_view(),
          name='token_refresh'),
+    path('logout/', views.deleteJWTToken, name='token_delete'),
     path('register/', views.register, name='register_user'),
     path('users/', views.get_users, name='users_list'),
     path('users/<id>', views.get_users, name='users_list'),
