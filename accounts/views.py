@@ -107,6 +107,9 @@ def add_photo(request, *args, **kwargs):
 
 @authentication_classes([])
 def deleteJWTToken(request):
+    """
+    Delete JWT Token when `User` logs out
+    """
     response = HttpResponse()
     response.delete_cookie("refresh_token", path="/")
     return response

@@ -11,3 +11,5 @@ logs/*
 
 media/*
 !media/.gitkeep 
+
+users_data.json

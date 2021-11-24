@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from django.core.validators import MinLengthValidator
 from django.db import models
 from django.contrib.auth.models import (BaseUserManager, AbstractBaseUser)
@@ -76,13 +76,13 @@ class User(AbstractBaseUser):
     gender = models.CharField(max_length=25, default='Not Disclosed')
 
     # introduction of the  user
-    introduction = models.CharField(max_length=250, null=True)
+    introduction = models.TextField(null=True)
 
     # looking for preference
-    looking_for = models.CharField(max_length=50, null=True)
+    looking_for = models.TextField(null=True)
 
     # interests of the user
-    interests = models.CharField(max_length=50, null=True)
+    interests = models.CharField(max_length=100, null=True)
 
     # city of the user
     city = models.CharField(max_length=40, null=True)
@@ -90,8 +90,12 @@ class User(AbstractBaseUser):
     # country of the user
     country = models.CharField(max_length=40, null=True)
 
-    # main photo of the user
-    main_photo = models.ImageField(upload_to=upload_main_photo, null=True)
+    # main photo (URL) of the user
+    main_photo = models.URLField(
+        max_length=250,
+        default=
+        'https://static-media-prod-cdn.itsre-sumo.mozilla.net/static/sumo/img/default-FFA-avatar.png'
+    )
 
     # field to get user activation status
     is_active = models.BooleanField(default=True)
@@ -110,6 +114,17 @@ class User(AbstractBaseUser):
         Returns a string representation of this `User` by providing username.
         """
         return self.username
+
+    def get_age(self):
+        """
+        Gets the age of `User`
+        """
+        today = date.today()
+        age = today.year - self.date_of_birth.year - (
+            (today.month, today.day) <
+            (self.date_of_birth.month, self.date_of_birth.day))
+
+        return age
 
 
 def user_photos_path(instance, filename):
