@@ -119,10 +119,14 @@ class User(AbstractBaseUser):
         """
         Gets the age of `User`
         """
-        today = date.today()
-        age = today.year - self.date_of_birth.year - (
-            (today.month, today.day) <
-            (self.date_of_birth.month, self.date_of_birth.day))
+
+        age = -1
+
+        if self.date_of_birth: 
+            today = date.today()
+            age = today.year - self.date_of_birth.year - (
+                (today.month, today.day) <
+                (self.date_of_birth.month, self.date_of_birth.day))
 
         return age
 

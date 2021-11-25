@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from .models import Photo, User
 from .serializers import PhotoSerializer, UserSerializer, TokenObtainPairSerializer, TokenRefreshSerializer, RegisterSerializer
+from .pagination import CustomPagination
 
 
 @api_view(['GET'])
@@ -24,7 +25,9 @@ def get_users(request, id=None, *args, **kwargs):
 
     if id is None:
         data = User.objects.all()
-        serializer = UserSerializer(data,
+        paginator = CustomPagination()
+        result = paginator.paginate_queryset(data, request)
+        serializer = UserSerializer(result,
                                     many=True,
                                     context=serializer_context)
     else:

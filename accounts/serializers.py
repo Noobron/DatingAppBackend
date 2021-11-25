@@ -9,9 +9,19 @@ class UserSerializer(serializers.ModelSerializer):
     """
     Serializer for handling `User`
     """
+
+    age = serializers.IntegerField(source='get_age')
+    firstName = serializers.CharField(source='first_name')
+    lastName = serializers.CharField(source='last_name')
+    dateOfBirth = serializers.DateField(source='date_of_birth')
+    lastActive = serializers.DateTimeField(source='last_active')
+    mainPhoto = serializers.URLField(source='main_photo')
+
     class Meta:
         model = User
-        fields = '__all__'
+        fields = ('username', 'introduction', 'gender', 'interests', 'city',
+                  'country', 'age', 'firstName', 'lastName', 'dateOfBirth',
+                  'lastActive', 'mainPhoto')
 
 
 class PhotoSerializer(serializers.ModelSerializer):
