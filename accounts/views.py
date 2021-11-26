@@ -14,7 +14,7 @@ from .pagination import CustomPagination
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_users(request, id=None, *args, **kwargs):
+def get_users(request, name=None, *args, **kwargs):
     """
     Gets details of all or single `User`
     """
@@ -23,15 +23,15 @@ def get_users(request, id=None, *args, **kwargs):
         'request': request,
     }
 
-    if id is None:
-        data = User.objects.all()
+    if name is None:
+        data = User.objects.filter(is_staff=False, is_active=True)
         paginator = CustomPagination()
         result = paginator.paginate_queryset(data, request)
         serializer = UserSerializer(result,
                                     many=True,
                                     context=serializer_context)
     else:
-        data = get_object_or_404(User, pk=id)
+        data = get_object_or_404(User, username=name)
         serializer = UserSerializer(data, context=serializer_context)
 
     return Response(serializer.data)

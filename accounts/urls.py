@@ -11,8 +11,8 @@ urlpatterns = [
          name='token_refresh'),
     path('logout/', views.deleteJWTToken, name='token_delete'),
     path('register/', views.register, name='register_user'),
-    path('users/', views.get_users, name='users_list'),
-    path('users/<id>', views.get_users, name='users_list'),
+    path('users/', views.get_users, name='get_users_list'),
+    path('users/<name>', views.get_users, name='get_user'),
     path('add-photo/', views.add_photo, name='add_photo'),
     path('edit-profile/', views.edit_profile, name='edit_profile'),
 ]
