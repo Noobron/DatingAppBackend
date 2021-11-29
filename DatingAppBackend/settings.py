@@ -15,7 +15,7 @@ import environ
 from datetime import timedelta
 
 # Initialise environment variables
-env = environ.Env()
+ENV = environ.Env()
 environ.Env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
-SECRET_KEY = env('SECRET_KEY')
+SECRET_KEY = ENV('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -82,11 +82,11 @@ WSGI_APPLICATION = 'DatingAppBackend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': env('DATABASE_NAME'),
-        'USER': env('DATABASE_USER'),
-        'PASSWORD': env('DATABASE_PASS'),
-        'HOST': env('DB_ENGINE_HOST'),
-        'PORT': env('DB_ENGINE_PORT'),
+        'NAME': ENV('DATABASE_NAME'),
+        'USER': ENV('DATABASE_USER'),
+        'PASSWORD': ENV('DATABASE_PASS'),
+        'HOST': ENV('DB_ENGINE_HOST'),
+        'PORT': ENV('DB_ENGINE_PORT'),
     }
 }
 
@@ -153,7 +153,7 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': env('LOG_FILE'),
+            'filename': ENV('LOG_FILE'),
         },
     },
     'loggers': {
@@ -174,7 +174,7 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': False,
     'UPDATE_LAST_LOGIN': False,
     'ALGORITHM': 'HS256',
-    'SIGNING_KEY': env('SECRET_KEY'),
+    'SIGNING_KEY': ENV('SECRET_KEY'),
     'VERIFYING_KEY': None,
     'AUDIENCE': None,
     'ISSUER': None,

@@ -5,15 +5,14 @@ from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from rest_framework.permissions import IsAuthenticated
 
 from .models import Photo, User
 from .serializers import PhotoSerializer, UserSerializer, TokenObtainPairSerializer, TokenRefreshSerializer, RegisterSerializer
 from .pagination import CustomPagination
+from DatingAppBackend import settings
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def get_users(request, name=None, *args, **kwargs):
     """
     Gets details of all or single `User`
@@ -90,6 +89,26 @@ def edit_profile(request, *args, **kwargs):
     return Response(serializer.data)
 
 
+@api_view(['GET'])
+@authentication_classes([])
+def get_photos(request, name, *args, **kwargs):
+    """
+    Gets a batch of `Photo`s of a `User`
+    """
+    user = get_object_or_404(User, username=name)
+
+    if (user.is_staff
+            or user.is_active == False) and request.user.is_staff == False:
+        return HttpResponse('Unauthorized', status=401)
+
+    data = Photo.objects.filter(user=user)
+    paginator = CustomPagination()
+    result = paginator.paginate_queryset(data, request)
+    serializer = PhotoSerializer(result, many=True)
+
+    return Response(serializer.data)
+
+
 @api_view(['POST'])
 def add_photo(request, *args, **kwargs):
     """
@@ -138,11 +157,6 @@ class TokenRefreshView(TokenRefreshView):
 
     def finalize_response(self, request, response, *args, **kwargs):
         if response.data.get('refresh'):
-            response.set_cookie('refresh_token',
-                                response.data['refresh'],
-                                httponly=True,
-                                samesite='Lax',
-                                secure=True)
             del response.data['refresh']
         return super().finalize_response(request, response, *args, **kwargs)
 
@@ -156,6 +170,8 @@ class TokenObtainPairView(TokenObtainPairView):
                                 response.data['refresh'],
                                 httponly=True,
                                 samesite='Lax',
-                                secure=True)
+                                secure=True,
+                                expires=datetime.today() +
+                                settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'])
             del response.data['refresh']
         return super().finalize_response(request, response, *args, **kwargs)

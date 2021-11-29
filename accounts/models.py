@@ -38,11 +38,6 @@ class UserManager(BaseUserManager):
         return user
 
 
-def upload_main_photo(instance):
-    # file will be uploaded to MEDIA_ROOT/<user_id>/profile.png
-    return '{0}/profile.png'.format(instance.user.id)
-
-
 class User(AbstractBaseUser):
     """
     Custom `User` Model for handling accounts in the backend
