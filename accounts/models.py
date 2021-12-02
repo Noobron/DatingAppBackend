@@ -1,5 +1,4 @@
 from datetime import datetime, date
-from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinLengthValidator
 from django.utils.deconstruct import deconstructible
 from django.core.exceptions import ValidationError
