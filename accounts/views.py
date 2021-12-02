@@ -60,8 +60,6 @@ def edit_profile(request, *args, **kwargs):
 
     data = request.data
 
-    print(data)
-
     if 'city' in data:
         user.city = data['city']
 
