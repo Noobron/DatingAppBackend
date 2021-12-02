@@ -3,16 +3,24 @@ from django.http.response import HttpResponse
 import json
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .models import Photo, User
+
 from .serializers import PhotoSerializer, UserSerializer, TokenObtainPairSerializer, TokenRefreshSerializer, RegisterSerializer
+
 from .pagination import CustomPagination
+
+from accounts.authentication import CustomAuthentication
+
 from DatingAppBackend import settings
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticatedOrReadOnly])
+@authentication_classes([CustomAuthentication])
 def get_users(request, name=None, *args, **kwargs):
     """
     Gets details of all or single `User`
@@ -23,7 +31,13 @@ def get_users(request, name=None, *args, **kwargs):
     }
 
     if name is None:
-        data = User.objects.filter(is_staff=False, is_active=True)
+        user_name = ''
+
+        if request.user.is_authenticated:
+            user_name = request.user.username
+
+        data = User.objects.filter(is_staff=False,
+                                   is_active=True).exclude(username=user_name)
         paginator = CustomPagination()
         result = paginator.paginate_queryset(data, request)
         serializer = UserSerializer(result,
@@ -46,17 +60,16 @@ def edit_profile(request, *args, **kwargs):
 
     data = request.data
 
+    print(data)
+
     if 'city' in data:
         user.city = data['city']
 
     if 'country' in data:
         user.country = data['country']
 
-    if 'gender' in data:
-        user.gender = data['gender']
-
-    if 'looking_for' in data:
-        user.looking_for = data['looking_for']
+    if 'lookingFor' in data:
+        user.looking_for = data['lookingFor']
 
     if 'interests' in data:
         user.interests = data['interests']
@@ -64,27 +77,22 @@ def edit_profile(request, *args, **kwargs):
     if 'introduction' in data:
         user.introduction = data['introduction']
 
-    if 'first_name' in data:
-        user.first_name = data['first_name']
+    if 'firstName' in data:
+        user.first_name = data['firstName']
 
-    if 'last_name' in data:
-        user.last_name = data['last_name']
-
-    if 'date_of_birth' in data:
-        user.date_of_birth = datetime.strptime(data['date_of_birth'],
-                                               '%Y-%m-%d').date()
+    if 'lastName' in data:
+        user.last_name = data['lastName']
 
     if 'password' in data:
         user.set_password(data['password'])
 
-    if 'main_photo' in data:
-        user.main_photo = data['main_photo']
+    if 'mainPhoto' in data:
+        user.main_photo = data['mainPhoto']
 
     serializer = UserSerializer(instance=user, data=data, partial=True)
 
     if serializer.is_valid(raise_exception=True):
-        #serializer.save()
-        pass
+        serializer.save()
 
     return Response(serializer.data)
 
@@ -143,6 +151,10 @@ def register(request, *args, **kwargs):
     """
     Registers new `User`
     """
+
+    if 'dateOfBirth' in request.data:
+        request.data['date_of_birth'] = datetime.strptime(
+            request.data['dateOfBirth'], '%Y-%m-%d').date()
 
     serializer = RegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)

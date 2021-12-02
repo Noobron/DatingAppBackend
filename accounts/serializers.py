@@ -35,7 +35,7 @@ class PhotoSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField('get_image_url')
 
     def get_image_url(self, obj):
-        return settings.ENV('DOMAIN_URL') + settings.MEDIA_URL + str(obj.image)
+        return settings.DOMAIN_URL + settings.MEDIA_URL + str(obj.image)
 
     class Meta:
         model = Photo

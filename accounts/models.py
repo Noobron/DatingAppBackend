@@ -1,14 +1,44 @@
 from datetime import datetime, date
+from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinLengthValidator
+from django.utils.deconstruct import deconstructible
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import (BaseUserManager, AbstractBaseUser)
+
+
+def calculate_age(born):
+    """
+    Calculates age
+    """
+    today = date.today()
+    return today.year - born.year - ((today.month, today.day) <
+                                     (born.month, born.day))
+
+
+@deconstructible
+class MinAgeValidator(object):
+    def __init__(self, minimum_age):
+        self.minimum_age = minimum_age
+
+    def __call__(self, value):
+        if calculate_age(value) < self.minimum_age:
+            raise ValidationError(str(calculate_age(value)) +
+                                  ' is less than minimum age: ' +
+                                  str(self.minimum_age),
+                                  params={'value': value})
 
 
 class UserManager(BaseUserManager):
     """
     Mananger class for `User` objects.
     """
-    def create_user(self, username, password):
+    def create_user(self,
+                    username,
+                    password,
+                    gender,
+                    date_of_birth,
+                    check_for_validation=False):
         """
         Create and return a `User` with a username and password.
         """
@@ -18,21 +48,43 @@ class UserManager(BaseUserManager):
         if password is None:
             raise TypeError('User must have a password.')
 
-        user = self.model(username=username)
+        if gender is None:
+            raise TypeError('User must have a gender')
+
+        if date_of_birth is None:
+            raise TypeError('User must have a date of birth')
+
+        user = self.model(username=username,
+                          date_of_birth=date_of_birth,
+                          gender=gender)
         user.set_password(password)
+
+        if check_for_validation == True:
+            user.full_clean()
+
         user.save()
 
         return user
 
-    def create_superuser(self, username, password):
+    def create_superuser(self,
+                         username,
+                         password,
+                         gender,
+                         date_of_birth,
+                         check_for_validation=False):
         """
         Create and return a `User` with superuser (admin) permissions.
         """
         if password is None:
             raise TypeError('Superusers must have a password.')
 
-        user = self.create_user(username, password)
+        user = self.create_user(username, password, gender, date_of_birth,
+                                check_for_validation)
         user.is_staff = True
+
+        if check_for_validation == True:
+            user.full_clean()
+
         user.save()
 
         return user
@@ -59,7 +111,7 @@ class User(AbstractBaseUser):
                                  max_length=75)
 
     # date of birth of the user
-    date_of_birth = models.DateField(null=True)
+    date_of_birth = models.DateField(validators=[MinAgeValidator(18)])
 
     # day on which user created the account
     date_of_creation = models.DateField(default=datetime.today)
@@ -68,7 +120,7 @@ class User(AbstractBaseUser):
     last_active = models.DateTimeField(default=datetime.now)
 
     # preferred gender of the user
-    gender = models.CharField(max_length=25, default='Not Disclosed')
+    gender = models.CharField(max_length=25)
 
     # introduction of the  user
     introduction = models.TextField(null=True)
@@ -115,15 +167,7 @@ class User(AbstractBaseUser):
         Gets the age of `User`
         """
 
-        age = -1
-
-        if self.date_of_birth: 
-            today = date.today()
-            age = today.year - self.date_of_birth.year - (
-                (today.month, today.day) <
-                (self.date_of_birth.month, self.date_of_birth.day))
-
-        return age
+        return calculate_age(self.date_of_birth)
 
 
 def user_photos_path(instance, filename):
