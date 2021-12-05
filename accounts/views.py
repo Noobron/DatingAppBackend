@@ -1,8 +1,10 @@
 from datetime import datetime
 from django.http.response import HttpResponse
-import json
+import requests
+import imghdr
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -16,6 +18,8 @@ from .pagination import CustomPagination
 from accounts.authentication import CustomAuthentication
 
 from DatingAppBackend import settings
+
+import cloudinary.uploader
 
 
 @api_view(['GET'])
@@ -48,6 +52,103 @@ def get_users(request, name=None, *args, **kwargs):
         serializer = UserSerializer(data, context=serializer_context)
 
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@authentication_classes([])
+def get_photos(request, name, *args, **kwargs):
+    """
+    Gets a batch of `Photo`s of a `User`
+    """
+    user = get_object_or_404(User, username=name)
+
+    if (user.is_staff
+            or user.is_active == False) and request.user.is_staff == False:
+        return Response('Unauthorized', status=401)
+
+    data = Photo.objects.filter(user=user)
+    paginator = CustomPagination()
+    result = paginator.paginate_queryset(data, request)
+    serializer = PhotoSerializer(result, many=True)
+
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@authentication_classes([])
+def register(request, *args, **kwargs):
+    """
+    Registers new `User`
+    """
+
+    if 'dateOfBirth' in request.data:
+        date = datetime.strptime(request.data['dateOfBirth'],
+                                 '%Y-%m-%d').date()
+
+    # check for validation
+    try:
+
+        user = User.objects.create_user(username=request.data['username'],
+                                        password=request.data['password'],
+                                        first_name=request.data['firstName'],
+                                        last_name=request.data['lastName'],
+                                        gender=request.data['gender'],
+                                        date_of_birth=date,
+                                        check_for_validation=True)
+    except ValidationError as e:
+        return Response(e, status=400)
+    except Exception as e:
+        return Response('Internal Server Error',
+                        status=500)
+
+    serializer = UserSerializer(instance=user)
+
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+def add_photo(request, *args, **kwargs):
+    """
+    Add a new `Photo` for current `User`
+    """
+
+    image_file = request.data['image']
+
+    try:
+
+        if imghdr.what(image_file) is None:
+            raise Exception('Please upload a valid image file')
+
+        cloudinary_upload_response = cloudinary.uploader.upload(
+            image_file, folder="files/" + str(request.user.id) + "/photos")
+
+        photo = Photo(image=cloudinary_upload_response['secure_url'],
+                      public_id=cloudinary_upload_response['public_id'],
+                      user=request.user)
+
+        # check for validation
+        photo.full_clean()
+
+        photo.save()
+
+    except FileNotFoundError:
+        return Response("'image' field should not be empty", status=400)
+    except Exception as e:
+        return Response('Sorry, something went wrong. Please try again later',
+                        status=400)
+
+    return Response({
+        'image': cloudinary_upload_response['secure_url'],
+        'id': cloudinary_upload_response['public_id']
+    })
+
+
+def is_url_image(image_url):
+    image_formats = ("image/png", "image/jpeg", "image/jpg")
+    r = requests.head(image_url)
+    if r.status_code == 200 and r.headers["content-type"] in image_formats:
+        return True
+    return False
 
 
 @api_view(['PUT'])
@@ -85,52 +186,54 @@ def edit_profile(request, *args, **kwargs):
         user.set_password(data['password'])
 
     if 'mainPhoto' in data:
-        user.main_photo = data['mainPhoto']
+        img = data['mainPhoto']
+        if img == '':
+            img = settings.DEFAULT_PROFILE_URL
+        elif is_url_image(img) is False:
+            return Response('Please send a valid URL for profile photo',
+                            status=400)
 
-    serializer = UserSerializer(instance=user, data=data, partial=True)
+        user.main_photo = img
 
-    if serializer.is_valid(raise_exception=True):
-        serializer.save()
+    # check for validation
+    try:
+        user.full_clean()
 
-    return Response(serializer.data)
+        user.save()
 
+    except ValidationError as e:
+        return Response(e, status=400)
+    except Exception as e:
+        return Response('Sorry, something went wrong. Please try again later',
+                        status=500)
 
-@api_view(['GET'])
-@authentication_classes([])
-def get_photos(request, name, *args, **kwargs):
-    """
-    Gets a batch of `Photo`s of a `User`
-    """
-    user = get_object_or_404(User, username=name)
-
-    if (user.is_staff
-            or user.is_active == False) and request.user.is_staff == False:
-        return HttpResponse('Unauthorized', status=401)
-
-    data = Photo.objects.filter(user=user)
-    paginator = CustomPagination()
-    result = paginator.paginate_queryset(data, request)
-    serializer = PhotoSerializer(result, many=True)
+    serializer = UserSerializer(instance=user)
 
     return Response(serializer.data)
 
 
-@api_view(['POST'])
-def add_photo(request, *args, **kwargs):
+@api_view(['DELETE'])
+def delete_photo(request, *args, **kwargs):
     """
-    Add a new `Photo` for current `User`
+    Delete `Photo` for current `User`
     """
 
-    request.data['user'] = request.user.id
+    if 'id' not in request.data:
+        return Response('id of the image not provided', status=400)
 
-    photo = Photo(image=request.data['image'], user=request.user)
+    photo = get_object_or_404(Photo,
+                              user=request.user,
+                              public_id=request.data['id'])
 
-    serializer = PhotoSerializer(instance=photo, data=request.data)
+    response = cloudinary.uploader.destroy(public_id=request.data['id'])
 
-    if (serializer.is_valid(raise_exception=True)):
-        photo.save()
+    if response['result'] == 'ok':
+        photo.delete()
+    else:
+        return Response('Sorry, something went wrong. Please try again later',
+                        status=400)
 
-    return HttpResponse(json.dumps({'message': "Uploaded"}), status=200)
+    return Response(status=204)
 
 
 @authentication_classes([])
@@ -141,25 +244,6 @@ def deleteJWTToken(request):
     response = HttpResponse()
     response.delete_cookie("refresh_token", path="/")
     return response
-
-
-@api_view(['POST'])
-@authentication_classes([])
-def register(request, *args, **kwargs):
-    """
-    Registers new `User`
-    """
-
-    if 'dateOfBirth' in request.data:
-        request.data['date_of_birth'] = datetime.strptime(
-            request.data['dateOfBirth'], '%Y-%m-%d').date()
-
-    serializer = RegisterSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    serializer.save()
-
-    return HttpResponse(json.dumps(serializer.data))
 
 
 class TokenRefreshView(TokenRefreshView):

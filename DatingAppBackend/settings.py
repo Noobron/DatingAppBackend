@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 from pathlib import Path
 import environ
 from datetime import timedelta
+import cloudinary
 
 # Initialise environment variables
 ENV = environ.Env()
@@ -197,8 +198,10 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 
-# specifiying the file to saved in `media` directory
-MEDIA_ROOT = BASE_DIR / 'media'
+# set cloudinary settings
+cloudinary.config(cloud_name=ENV('CLOUDINARY_CLOUD_NAME'),
+                  api_key=ENV('CLOUDINARY_API_KEY'),
+                  api_secret=ENV('CLOUDINARY_API_SECRET'))
 
-# files are going to be available on the client side through `files` directory
-MEDIA_URL = '/files/'
+# set default profile URL
+DEFAULT_PROFILE_URL = ENV('DEFAULT_PROFILE_URL')

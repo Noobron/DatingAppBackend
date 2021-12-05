@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import (BaseUserManager, AbstractBaseUser)
 
+from DatingAppBackend import settings
 
 def calculate_age(born):
     """
@@ -37,6 +38,8 @@ class UserManager(BaseUserManager):
                     password,
                     gender,
                     date_of_birth,
+                    first_name='',
+                    last_name='',
                     check_for_validation=False):
         """
         Create and return a `User` with a username and password.
@@ -55,7 +58,9 @@ class UserManager(BaseUserManager):
 
         user = self.model(username=username,
                           date_of_birth=date_of_birth,
-                          gender=gender)
+                          gender=gender,
+                          first_name=first_name,
+                          last_name=last_name)
         user.set_password(password)
 
         if check_for_validation == True:
@@ -70,6 +75,8 @@ class UserManager(BaseUserManager):
                          password,
                          gender,
                          date_of_birth,
+                         first_name='',
+                         last_name='',
                          check_for_validation=False):
         """
         Create and return a `User` with superuser (admin) permissions.
@@ -78,7 +85,7 @@ class UserManager(BaseUserManager):
             raise TypeError('Superusers must have a password.')
 
         user = self.create_user(username, password, gender, date_of_birth,
-                                check_for_validation)
+                                first_name, last_name, check_for_validation)
         user.is_staff = True
 
         if check_for_validation == True:
@@ -122,26 +129,25 @@ class User(AbstractBaseUser):
     gender = models.CharField(max_length=25)
 
     # introduction of the  user
-    introduction = models.TextField(null=True)
+    introduction = models.TextField(null=True, blank=True)
 
     # looking for preference
-    looking_for = models.TextField(null=True)
+    looking_for = models.TextField(null=True, blank=True)
 
     # interests of the user
-    interests = models.CharField(max_length=100, null=True)
+    interests = models.CharField(max_length=100, null=True, blank=True)
 
     # city of the user
-    city = models.CharField(max_length=40, null=True)
+    city = models.CharField(max_length=40, null=True, blank=True)
 
     # country of the user
-    country = models.CharField(max_length=40, null=True)
+    country = models.CharField(max_length=40, null=True, blank=True)
 
     # main photo (URL) of the user
     main_photo = models.URLField(
-        max_length=250,
         default=
-        'https://static-media-prod-cdn.itsre-sumo.mozilla.net/static/sumo/img/default-FFA-avatar.png'
-    )
+        settings.DEFAULT_PROFILE_URL,
+        max_length=1000)
 
     # field to get user activation status
     is_active = models.BooleanField(default=True)
@@ -176,11 +182,14 @@ def user_photos_path(instance, filename):
 
 class Photo(models.Model):
     """
-    Class for sotring images uploaded by user in their profile
+    Class for storing image urls uploaded by user in their profile
     """
 
     # user field
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
-    # image uploaded by user
-    image = models.ImageField(upload_to=user_photos_path)
+    # URL for image uploaded by user
+    image = models.URLField(max_length=1000)
+
+    # public ID of the image associated with Cloudinary
+    public_id = models.CharField(max_length=100, unique=True)

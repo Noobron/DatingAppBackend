@@ -4,8 +4,6 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 
 from accounts.models import Photo, User
 
-from DatingAppBackend import settings
-
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -32,14 +30,11 @@ class PhotoSerializer(serializers.ModelSerializer):
     Serializer for handling new `Photo`
     """
 
-    image = serializers.SerializerMethodField('get_image_url')
-
-    def get_image_url(self, obj):
-        return settings.DOMAIN_URL + settings.MEDIA_URL + str(obj.image)
+    id = serializers.CharField(source='public_id')
 
     class Meta:
         model = Photo
-        fields = ('image', )
+        fields = ('image', 'id')
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -57,7 +52,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = User.objects.create_user(username=validated_data['username'],
-                                        password=validated_data['password'])
+                                        password=validated_data['password'],
+                                        gender=validated_data['gender',
+                                        ])
 
         user.first_name = validated_data['first_name']
         user.last_name = validated_data['last_name']
