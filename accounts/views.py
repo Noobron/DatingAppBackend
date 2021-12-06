@@ -11,7 +11,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .models import Photo, User
 
-from .serializers import PhotoSerializer, UserSerializer, TokenObtainPairSerializer, TokenRefreshSerializer, RegisterSerializer
+from .serializers import PhotoSerializer, UserSerializer, TokenObtainPairSerializer, TokenRefreshSerializer
 
 from .pagination import CustomPagination
 

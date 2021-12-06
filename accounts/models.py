@@ -1,6 +1,7 @@
 from datetime import datetime, date
 from django.core.validators import MinLengthValidator
 from django.utils.deconstruct import deconstructible
+from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import (BaseUserManager, AbstractBaseUser)
@@ -123,7 +124,7 @@ class User(AbstractBaseUser):
     date_of_creation = models.DateField(default=datetime.today)
 
     # last time user was active
-    last_active = models.DateTimeField(default=datetime.now)
+    last_active = models.DateTimeField(default=timezone.now)
 
     # preferred gender of the user
     gender = models.CharField(max_length=25)
