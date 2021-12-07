@@ -4,7 +4,7 @@ import requests
 import imghdr
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.exceptions import ValidationError
+from django.core.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -81,12 +81,13 @@ def register(request, *args, **kwargs):
     Registers new `User`
     """
 
-    if 'dateOfBirth' in request.data:
-        date = datetime.strptime(request.data['dateOfBirth'],
-                                 '%Y-%m-%d').date()
-
-    # check for validation
     try:
+
+        if 'dateOfBirth' in request.data:
+            date = datetime.strptime(request.data['dateOfBirth'],
+                                     '%Y-%m-%d').date()
+
+        # check for validation
 
         user = User.objects.create_user(username=request.data['username'],
                                         password=request.data['password'],
@@ -97,9 +98,12 @@ def register(request, *args, **kwargs):
                                         check_for_validation=True)
     except ValidationError as e:
         return Response(e, status=400)
+    except ValueError as e:
+        return Response("Please enter dateOfBirth field", status=400)
     except Exception as e:
-        return Response('Internal Server Error',
-                        status=500)
+        return Response(
+            'Server encountered an issue while processing the request',
+            status=500)
 
     serializer = UserSerializer(instance=user)
 
@@ -161,42 +165,44 @@ def edit_profile(request, *args, **kwargs):
 
     data = request.data
 
-    if 'city' in data:
-        user.city = data['city']
-
-    if 'country' in data:
-        user.country = data['country']
-
-    if 'lookingFor' in data:
-        user.looking_for = data['lookingFor']
-
-    if 'interests' in data:
-        user.interests = data['interests']
-
-    if 'introduction' in data:
-        user.introduction = data['introduction']
-
-    if 'firstName' in data:
-        user.first_name = data['firstName']
-
-    if 'lastName' in data:
-        user.last_name = data['lastName']
-
-    if 'password' in data:
-        user.set_password(data['password'])
-
-    if 'mainPhoto' in data:
-        img = data['mainPhoto']
-        if img == '':
-            img = settings.DEFAULT_PROFILE_URL
-        elif is_url_image(img) is False:
-            return Response('Please send a valid URL for profile photo',
-                            status=400)
-
-        user.main_photo = img
-
-    # check for validation
     try:
+
+        if 'city' in data:
+            user.city = data['city']
+
+        if 'country' in data:
+            user.country = data['country']
+
+        if 'lookingFor' in data:
+            user.looking_for = data['lookingFor']
+
+        if 'interests' in data:
+            user.interests = data['interests']
+
+        if 'introduction' in data:
+            user.introduction = data['introduction']
+
+        if 'firstName' in data:
+            user.first_name = data['firstName']
+
+        if 'lastName' in data:
+            user.last_name = data['lastName']
+
+        if 'password' in data:
+            user.set_password(data['password'])
+
+        if 'mainPhoto' in data:
+            img = data['mainPhoto']
+            if img == '':
+                img = settings.DEFAULT_PROFILE_URL
+            elif is_url_image(img) is False:
+                return Response('Please send a valid URL for profile photo',
+                                status=400)
+
+            user.main_photo = img
+
+        # check for validation
+
         user.full_clean()
 
         user.save()
