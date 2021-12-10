@@ -57,12 +57,12 @@ class UserManager(BaseUserManager):
         if date_of_birth is None:
             raise TypeError('User must have a date of birth')
 
-        user = self.model(username=username,
+        user = self.model(username=username.strip(),
                           date_of_birth=date_of_birth,
                           gender=gender.lower(),
-                          first_name=first_name,
-                          last_name=last_name)
-        user.set_password(password)
+                          first_name=first_name.strip(),
+                          last_name=last_name.strip())
+        user.set_password(password.strip())
 
         if check_for_validation == True:
             user.full_clean()

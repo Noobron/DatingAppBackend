@@ -168,31 +168,31 @@ def edit_profile(request, *args, **kwargs):
     try:
 
         if 'city' in data:
-            user.city = data['city']
+            user.city = data['city'].strip()
 
         if 'country' in data:
-            user.country = data['country']
+            user.country = data['country'].strip()
 
         if 'lookingFor' in data:
-            user.looking_for = data['lookingFor']
+            user.looking_for = data['lookingFor'].strip()
 
         if 'interests' in data:
-            user.interests = data['interests']
+            user.interests = data['interests'].strip()
 
         if 'introduction' in data:
-            user.introduction = data['introduction']
+            user.introduction = data['introduction'].strip()
 
         if 'firstName' in data:
-            user.first_name = data['firstName']
+            user.first_name = data['firstName'].strip()
 
         if 'lastName' in data:
-            user.last_name = data['lastName']
+            user.last_name = data['lastName'].strip()
 
         if 'password' in data:
-            user.set_password(data['password'])
+            user.set_password(data['password']).strip()
 
         if 'mainPhoto' in data:
-            img = data['mainPhoto']
+            img = data['mainPhoto'].strip()
             if img == '':
                 img = settings.DEFAULT_PROFILE_URL
             elif is_url_image(img) is False:

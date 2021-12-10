@@ -25,9 +25,9 @@ class CustomPagination(pagination.LimitOffsetPagination):
         min_age = request.query_params.get('min-age')
         max_age = request.query_params.get('max-age')
 
-        if limit and limit.isnumeric():
+        if limit and limit.strip().isnumeric():
 
-            limit = int(limit)
+            limit = int(limit.strip())
 
             if limit > self.max_limit:
                 raise serializers.ValidationError({
@@ -45,9 +45,9 @@ class CustomPagination(pagination.LimitOffsetPagination):
                     ]
                 })
 
-        if offset and offset.isnumeric():
+        if offset and offset.strip().isnumeric():
 
-            offset = int(offset)
+            offset = int(offset.strip())
 
             if offset > self.max_offset:
                 raise serializers.ValidationError({
@@ -67,19 +67,21 @@ class CustomPagination(pagination.LimitOffsetPagination):
 
         if gender:
 
+            gender = gender.strip().lower()
+
             queryset = queryset.filter(gender=gender)
 
-        if min_age and min_age.isnumeric():
+        if min_age and min_age.strip().isnumeric():
 
-            min_age = int(min_age)
+            min_age = int(min_age.strip())
 
             date = datetime.now() - relativedelta(years=min_age)
 
             queryset = queryset.filter(date_of_birth__year__lte=date.year)
 
-        if max_age and max_age.isnumeric():
+        if max_age and max_age.strip().isnumeric():
 
-            max_age = int(max_age)
+            max_age = int(max_age.strip())
 
             date = datetime.now() - relativedelta(years=max_age)
 
