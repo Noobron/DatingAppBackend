@@ -84,18 +84,19 @@ def register(request, *args, **kwargs):
     try:
 
         if 'dateOfBirth' in request.data:
-            date = datetime.strptime(request.data['dateOfBirth'],
+            date = datetime.strptime(str(request.data['dateOfBirth']),
                                      '%Y-%m-%d').date()
 
         # check for validation
 
-        user = User.objects.create_user(username=request.data['username'],
-                                        password=request.data['password'],
-                                        first_name=request.data['firstName'],
-                                        last_name=request.data['lastName'],
-                                        gender=request.data['gender'],
-                                        date_of_birth=date,
-                                        check_for_validation=True)
+        user = User.objects.create_user(
+            username=str(request.data['username']),
+            password=str(request.data['password']),
+            first_name=str(request.data['firstName']),
+            last_name=str(request.data['lastName']),
+            gender=str(request.data['gender']),
+            date_of_birth=date,
+            check_for_validation=True)
     except ValidationError as e:
         return Response(e, status=400)
     except ValueError as e:

@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import (BaseUserManager, AbstractBaseUser)
+from django.contrib.postgres.fields import CICharField
 
 from DatingAppBackend import settings
 
@@ -59,7 +60,7 @@ class UserManager(BaseUserManager):
 
         user = self.model(username=username.strip(),
                           date_of_birth=date_of_birth,
-                          gender=gender.lower(),
+                          gender=gender.strip().lower(),
                           first_name=first_name.strip(),
                           last_name=last_name.strip())
         user.set_password(password.strip())
@@ -103,9 +104,9 @@ class User(AbstractBaseUser):
     """
 
     # unique user name of the user
-    username = models.CharField(validators=[MinLengthValidator(3)],
-                                max_length=50,
-                                unique=True)
+    username = CICharField(validators=[MinLengthValidator(3)],
+                           max_length=50,
+                           unique=True)
 
     # first name of the user
     first_name = models.CharField(validators=[MinLengthValidator(3)],

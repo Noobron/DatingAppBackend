@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.admin', 'django.contrib.auth',
     'django.contrib.contenttypes', 'django.contrib.sessions',
     'django.contrib.messages', 'django.contrib.staticfiles', 'rest_framework',
-    'sslserver', 'accounts', 'corsheaders'
+    'sslserver', 'accounts', 'corsheaders', 'channels'
 ]
 
 MIDDLEWARE = [
@@ -79,6 +79,22 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'DatingAppBackend.wsgi.application'
+
+ASGI_APPLICATION = 'DatingAppBackend.routing.application'
+
+# Use Memurai for running Redis in a Windows Machine
+
+REDIS_HOST = ENV('REDIS_HOST')
+REDIS_PORT = ENV('REDIS_PORT')
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(REDIS_HOST, REDIS_PORT)],
+        },
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases

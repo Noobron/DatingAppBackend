@@ -1,4 +1,3 @@
-from django.http.response import HttpResponse
 from rest_framework.exceptions import NotAuthenticated, NotFound
 from rest_framework import authentication
 import jwt
