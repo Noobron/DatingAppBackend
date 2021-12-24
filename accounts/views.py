@@ -13,7 +13,7 @@ from .models import Photo, User
 
 from .serializers import PhotoSerializer, UserSerializer, TokenObtainPairSerializer, TokenRefreshSerializer
 
-from .pagination import CustomPagination
+from .pagination import UserPagination
 
 from accounts.authentication import CustomAuthentication
 
@@ -42,7 +42,7 @@ def get_users(request, name=None, *args, **kwargs):
 
         data = User.objects.filter(is_staff=False,
                                    is_active=True).exclude(username=user_name)
-        paginator = CustomPagination()
+        paginator = UserPagination()
         result = paginator.paginate_queryset(data, request)
         serializer = UserSerializer(result,
                                     many=True,
@@ -67,7 +67,7 @@ def get_photos(request, name, *args, **kwargs):
         return Response('Unauthorized', status=401)
 
     data = Photo.objects.filter(user=user)
-    paginator = CustomPagination()
+    paginator = UserPagination()
     result = paginator.paginate_queryset(data, request)
     serializer = PhotoSerializer(result, many=True)
 

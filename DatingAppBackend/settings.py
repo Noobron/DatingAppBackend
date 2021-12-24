@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.admin', 'django.contrib.auth',
     'django.contrib.contenttypes', 'django.contrib.sessions',
     'django.contrib.messages', 'django.contrib.staticfiles', 'rest_framework',
-    'sslserver', 'accounts', 'corsheaders', 'channels'
+    'sslserver', 'accounts', 'chat', 'corsheaders', 'channels'
 ]
 
 MIDDLEWARE = [
@@ -86,6 +86,10 @@ ASGI_APPLICATION = 'DatingAppBackend.routing.application'
 
 REDIS_HOST = ENV('REDIS_HOST')
 REDIS_PORT = ENV('REDIS_PORT')
+
+# Celery configurations
+
+CELERY_BROKER_URL = ENV('CELERY_BROKER_URL')
 
 CHANNEL_LAYERS = {
     "default": {

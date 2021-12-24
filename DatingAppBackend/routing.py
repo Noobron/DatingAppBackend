@@ -6,11 +6,16 @@ from django.core.asgi import get_asgi_application
 
 import accounts.routing
 
+import chat.routing
+
 from middlewares.token_authenticator import JwtTokenAuthMiddleware
+
+websocket_urlpatterns = accounts.routing.websocket_urlpatterns
+websocket_urlpatterns += chat.routing.websocket_urlpatterns
 
 application = ProtocolTypeRouter({
     'http':
     get_asgi_application(),
     'websocket':
-    JwtTokenAuthMiddleware(URLRouter(accounts.routing.websocket_urlpatterns))
+    JwtTokenAuthMiddleware(URLRouter(websocket_urlpatterns))
 })

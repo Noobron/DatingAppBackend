@@ -5,7 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
-class CustomPagination(pagination.LimitOffsetPagination):
+class UserPagination(pagination.LimitOffsetPagination):
     """
     Custom Limit Offset Paginator for `User`s. \n Requires client to provide `limit` and `offset` parameters.
     """
