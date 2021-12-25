@@ -13,15 +13,6 @@ MESSAGE_TYPE = [
 ]
 
 
-def text_encoder(content):
-    return models.TextField()
-
-
-# CONTENT_ENCODER = [
-#     TEXT :
-# ]
-
-
 class ChatMessage(models.Model):
     """
     Class for storing chat messages between `Users`
@@ -52,7 +43,7 @@ class ChatMessage(models.Model):
     seen = models.BooleanField(default=False)
 
     # content of the chat message
-    content = models.TextField(null=False)
+    _content = models.TextField(null=False, blank=False, db_column="content")
 
     # name of the chat room to which the message belongs to
     chat_room_name = CICharField(
@@ -60,3 +51,19 @@ class ChatMessage(models.Model):
         null=False,
         blank=False,
     )
+
+    @property
+    def content(self):
+        return self._content
+
+    def process_content(self, data):
+        # default is TEXT
+
+        if self.message_type == TEXT:
+            return data
+        else:
+            return data
+
+    @content.setter
+    def content(self, data):
+        self._content = self.process_content(data)

@@ -1,6 +1,4 @@
-from celery import shared_task
 from DatingAppBackend.celery import app
-from channels.db import database_sync_to_async
 from dateutil import parser
 
 from accounts.models import User
@@ -32,9 +30,9 @@ def update_chat_db(messages, username1, username2):
         content = None
 
         try:
-            if 'message_type' in message and type(
-                    message['message_type']) == str:
-                message_type = message['message_type'].lower()
+            if 'messageType' in message and type(
+                    message['messageType']) == str:
+                message_type = message['messageType'].lower()
 
             if 'sender' in message and type(message['sender']) == str:
                 sender = user1 if user1.username.lower(
@@ -44,8 +42,8 @@ def update_chat_db(messages, username1, username2):
                 recipient = user1 if user1.username.lower(
                 ) == message['recipient'].lower() else user2
 
-            if 'created_at' in message:
-                created_at = parser.parse(message['created_at'])
+            if 'createdAt' in message:
+                created_at = parser.parse(message['createdAt'])
 
             if 'seen' in message:
                 seen = True if message['seen'] else False

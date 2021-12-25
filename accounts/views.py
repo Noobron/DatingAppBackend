@@ -3,6 +3,7 @@ from django.http.response import HttpResponse
 import requests
 import imghdr
 from django.shortcuts import get_object_or_404
+from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from django.core.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -64,7 +65,7 @@ def get_photos(request, name, *args, **kwargs):
 
     if (user.is_staff
             or user.is_active == False) and request.user.is_staff == False:
-        return Response('Unauthorized', status=401)
+        return Response('Unauthorized', status=status.HTTP_401_UNAUTHORIZED)
 
     data = Photo.objects.filter(user=user)
     paginator = UserPagination()
@@ -98,13 +99,14 @@ def register(request, *args, **kwargs):
             date_of_birth=date,
             check_for_validation=True)
     except ValidationError as e:
-        return Response(e, status=400)
+        return Response(e, status=status.HTTP_400_BAD_REQUEST)
     except ValueError as e:
-        return Response("Please enter dateOfBirth field", status=400)
+        return Response("Please enter dateOfBirth field",
+                        status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response(
             'Server encountered an issue while processing the request',
-            status=500)
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     serializer = UserSerializer(instance=user)
 
@@ -137,10 +139,11 @@ def add_photo(request, *args, **kwargs):
         photo.save()
 
     except FileNotFoundError:
-        return Response("'image' field should not be empty", status=400)
+        return Response("'image' field should not be empty",
+                        status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response('Sorry, something went wrong. Please try again later',
-                        status=400)
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response({
         'image': cloudinary_upload_response['secure_url'],
@@ -151,7 +154,8 @@ def add_photo(request, *args, **kwargs):
 def is_url_image(image_url):
     image_formats = ("image/png", "image/jpeg", "image/jpg")
     r = requests.head(image_url)
-    if r.status_code == 200 and r.headers["content-type"] in image_formats:
+    if r.status_code == status.HTTP_200_OK and r.headers[
+            "content-type"] in image_formats:
         return True
     return False
 
@@ -198,7 +202,7 @@ def edit_profile(request, *args, **kwargs):
                 img = settings.DEFAULT_PROFILE_URL
             elif is_url_image(img) is False:
                 return Response('Please send a valid URL for profile photo',
-                                status=400)
+                                status=status.HTTP_400_BAD_REQUEST)
 
             user.main_photo = img
 
@@ -209,10 +213,10 @@ def edit_profile(request, *args, **kwargs):
         user.save()
 
     except ValidationError as e:
-        return Response(e, status=400)
+        return Response(e, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response('Sorry, something went wrong. Please try again later',
-                        status=500)
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     serializer = UserSerializer(instance=user)
 
@@ -226,7 +230,8 @@ def delete_photo(request, *args, **kwargs):
     """
 
     if 'id' not in request.data:
-        return Response('id of the image not provided', status=400)
+        return Response('id of the image not provided',
+                        status=status.HTTP_400_BAD_REQUEST)
 
     photo = get_object_or_404(Photo,
                               user=request.user,
@@ -238,9 +243,9 @@ def delete_photo(request, *args, **kwargs):
         photo.delete()
     else:
         return Response('Sorry, something went wrong. Please try again later',
-                        status=400)
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    return Response(status=204)
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @authentication_classes([])
