@@ -1,14 +1,24 @@
 from celery import shared_task
+from DatingAppBackend.celery import app
 from channels.db import database_sync_to_async
 from dateutil import parser
+
+from accounts.models import User
 
 from chat.models import ChatMessage
 
 
 # Update db by running the celery task
-@shared_task
-@database_sync_to_async
-def update_chat_db(messages, user1, user2):
+@app.task
+def update_chat_db(messages, username1, username2):
+
+    user1 = User.objects.filter(username=username1).first()
+
+    user2 = User.objects.filter(username=username2).first()
+
+    if user1 is None or user2 is None:
+        return
+
     for message in messages:
         message_type = None
 

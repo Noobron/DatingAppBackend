@@ -36,9 +36,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         messages = await self.chat_messages_cache.get(self.chat_message_store)
 
         if messages is not None and len(messages) > 0:
-            await update_chat_db(messages, self.channel_user, self.other_user).delay()
+            update_chat_db.delay(messages, self.channel_user.username,
+                                 self.other_user.username)
 
-            await self.chat_messages_cache.delete(self.chat_message_store)
+        await self.chat_messages_cache.delete(self.chat_message_store)
 
     # Sync client with other devices if any
     async def sync_client(self):
@@ -61,7 +62,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 })
 
         if updates == True:
-            await self.chat_messages_cache.set(self.chat_message_store, messages)
+            await self.chat_messages_cache.set(self.chat_message_store,
+                                               messages)
 
     # Add current client's device to the chat room
     async def add_device(self):
@@ -94,7 +96,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
 
         if text_data is not None:
-       
+
             data_json = json.loads(text_data)
 
             content = data_json['data']
@@ -108,14 +110,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'content': content
             })
 
-            messages = await self.chat_messages_cache.get(self.chat_message_store)
+            messages = await self.chat_messages_cache.get(
+                self.chat_message_store)
 
             if messages is None:
                 messages = []
 
             messages.append(content)
 
-            await self.chat_messages_cache.set(self.chat_message_store, messages)
+            await self.chat_messages_cache.set(self.chat_message_store,
+                                               messages)
 
     async def message(self, event):
         content = event['content']
