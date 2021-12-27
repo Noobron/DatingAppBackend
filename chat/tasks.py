@@ -3,7 +3,7 @@ from dateutil import parser
 
 from accounts.models import User
 
-from chat.models import ChatMessage
+from chat.models import ChatMessage, ChatRoom
 
 
 # Update db by running the celery task
@@ -16,6 +16,17 @@ def update_chat_db(messages, username1, username2):
 
     if user1 is None or user2 is None:
         return
+
+    chat_room_name = min(user1.username, user2.username) + '_' + max(
+        user1.username, user2.username) + '_chat'
+
+    chat_room = ChatRoom.objects.filter(chat_room_name=chat_room_name).first()
+
+    if chat_room is None:
+        chat_room = ChatRoom(chat_room_name=chat_room_name)
+        chat_room.save()
+
+    last_chat_message = None
 
     for message in messages:
         message_type = None
@@ -36,7 +47,7 @@ def update_chat_db(messages, username1, username2):
 
             if 'sender' in message and type(message['sender']) == str:
                 sender = user1 if user1.username.lower(
-                ) == message['sender'] else user2
+                ) == message['sender'].lower() else user2
 
             if 'recipient' in message and type(message['recipient']) == str:
                 recipient = user1 if user1.username.lower(
@@ -51,20 +62,23 @@ def update_chat_db(messages, username1, username2):
             if 'content' in message:
                 content = message['content']
 
-            chat_room_name = min(user1.username, user2.username) + '_' + max(
-                user1.username, user2.username) + '_chat'
-
             chat_message = ChatMessage(message_type=message_type,
                                        sender=sender,
                                        recipient=recipient,
                                        created_at=created_at,
                                        seen=seen,
                                        content=content,
-                                       chat_room_name=chat_room_name)
+                                       chat_room=chat_room)
 
             chat_message.full_clean()
 
             chat_message.save()
 
+            last_chat_message = chat_message
+
         except Exception as error:
             print(error)
+
+    if last_chat_message is not None:
+        chat_room.last_chat_message = last_chat_message
+        chat_room.save()

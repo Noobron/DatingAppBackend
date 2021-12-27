@@ -13,6 +13,25 @@ MESSAGE_TYPE = [
 ]
 
 
+class ChatRoom(models.Model):
+    """
+    Class for chat rooms
+    """
+
+    # name of the chat room to which the message belongs to
+    chat_room_name = CICharField(
+        max_length=125,
+        unique=True,
+        null=False,
+        blank=False,
+    )
+
+    # last message of the chat room
+    last_chat_message = models.ForeignKey('ChatMessage',
+                                          on_delete=models.CASCADE,
+                                          null=True)
+
+
 class ChatMessage(models.Model):
     """
     Class for storing chat messages between `Users`
@@ -43,27 +62,10 @@ class ChatMessage(models.Model):
     seen = models.BooleanField(default=False)
 
     # content of the chat message
-    _content = models.TextField(null=False, blank=False, db_column="content")
+    content = models.TextField(null=False, blank=False)
 
-    # name of the chat room to which the message belongs to
-    chat_room_name = CICharField(
-        max_length=125,
-        null=False,
-        blank=False,
-    )
-
-    @property
-    def content(self):
-        return self._content
-
-    def process_content(self, data):
-        # default is TEXT
-
-        if self.message_type == TEXT:
-            return data
-        else:
-            return data
-
-    @content.setter
-    def content(self, data):
-        self._content = self.process_content(data)
+    # chat room of the chat message
+    chat_room = models.ForeignKey(ChatRoom,
+                                  related_name='chat_room',
+                                  null=False,
+                                  on_delete=models.CASCADE)

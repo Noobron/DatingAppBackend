@@ -3,7 +3,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('get-chat-messages/<chat_room_name>',
+    path('get-chat-messages/',
          views.get_chat_messages,
          name='get_chat_messages'),
     path('mark-chat-message-as-seen/',

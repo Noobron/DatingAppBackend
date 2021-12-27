@@ -17,7 +17,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
     Consumer to handle real time chat between Users
     """
     def __init__(self):
-        self.chat_device_count_cache = Cache("redis://" + settings.REDIS_HOST)
+        self.chat_channel_user_device_count_cache = Cache("redis://" +
+                                                          settings.REDIS_HOST)
+        self.chat_other_user_device_count_cache = Cache("redis://" +
+                                                        settings.REDIS_HOST)
         self.chat_messages_cache = Cache("redis://" + settings.REDIS_HOST)
         super().__init__()
 
@@ -68,29 +71,32 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # Add current client's device to the chat room
     async def add_device(self):
 
-        count = await self.chat_device_count_cache.get(self.chat_device_count)
+        count = await self.chat_channel_user_device_count_cache.get(
+            self.chat_channel_user_device_count)
 
         if count is None:
-            await self.chat_device_count_cache.set(self.chat_device_count, 1)
+            await self.chat_channel_user_device_count_cache.set(
+                self.chat_channel_user_device_count, 1)
         else:
-            await self.chat_device_count_cache.set(self.chat_device_count,
-                                                   count + 1)
+            await self.chat_channel_user_device_count_cache.set(
+                self.chat_channel_user_device_count, count + 1)
 
     # Remove current client's device from the chat room and sync the chat with database if no user belonging to the chat room is online
     async def remove_device(self):
 
-        count = await self.chat_device_count_cache.get(self.chat_device_count)
+        count = await self.chat_channel_user_device_count_cache.get(
+            self.chat_channel_user_device_count)
 
         if count is not None:
             if count <= 1:
-                await self.chat_device_count_cache.delete(
-                    self.chat_device_count)
+                await self.chat_channel_user_device_count_cache.delete(
+                    self.chat_channel_user_device_count)
 
                 await self.sync_chat_with_database()
 
             else:
-                await self.chat_device_count_cache.set(self.chat_device_count,
-                                                       count - 1)
+                await self.chat_channel_user_device_count_cache.set(
+                    self.chat_channel_user_device_count, count - 1)
 
     # Send message to group and update message store on receiving message from client
     async def receive(self, text_data=None, bytes_data=None):
@@ -101,9 +107,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             content = data_json['data']
 
-            if 'recipient' in content and self.channel_user.username.lower() == content['recipient'].lower() \
-                    and 'seen' in content and content['seen'] == False:
+            content['recipient'] = self.other_user.username
+
+            content['sender'] = self.channel_user.username
+
+            count = await self.chat_other_user_device_count_cache.get(
+                self.chat_other_user_device_count)
+
+            if count is not None and count > 0:
                 content['seen'] = True
+            else:
+                content['seen'] = False
 
             await self.channel_layer.group_send(self.chat_room_name, {
                 'type': 'message',
@@ -193,13 +207,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
                                           self.channel_user.username,
                                           self.other_user.username)
 
-            self.chat_device_count = self.chat_room_name + '_device_count'
+            self.chat_channel_user_device_count = self.chat_room_name + '_' + self.channel_user.username + '_device_count'
+
+            self.chat_other_user_device_count = self.chat_room_name + '_' + self.other_user.username + '_device_count'
 
             self.chat_message_store = self.chat_room_name + '_message_store'
 
             await self.chat_messages_cache.connect()
 
-            await self.chat_device_count_cache.connect()
+            await self.chat_channel_user_device_count_cache.connect()
+
+            await self.chat_other_user_device_count_cache.connect()
 
             await self.sync_client()
 
@@ -221,7 +239,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         await self.remove_device()
 
-        await self.chat_device_count_cache.disconnect()
+        await self.chat_channel_user_device_count_cache.disconnect()
+
+        await self.chat_other_user_device_count_cache.disconnect()
 
         await self.chat_messages_cache.disconnect()
 
