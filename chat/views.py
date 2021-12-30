@@ -1,7 +1,9 @@
 from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from django.db.models import Q
 
 from accounts.models import User
 
@@ -9,10 +11,11 @@ from chat.models import ChatMessage, ChatRoom
 
 from chat.pagination import ChatMessagePagination
 
-from chat.serializers import ChatMessageSerializer
+from chat.serializers import ChatMessageSerializer, ChatRoomSerializer
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_chat_messages(request, *args, **kwargs):
     """
     Gets unread (with additional) chat messages of a chat room
@@ -47,6 +50,7 @@ def get_chat_messages(request, *args, **kwargs):
 
 
 @api_view(['PUT'])
+@permission_classes([IsAuthenticated])
 def mark_chat_message_as_seen(request, *args, **kwargs):
     """
     Marks all unread chat messages of a chat room as seen
@@ -82,3 +86,27 @@ def mark_chat_message_as_seen(request, *args, **kwargs):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_chat_feed(request, *args, **kwargs):
+    """
+    Gets the chat feed of a user
+    """
+
+    user = request.user
+
+    if user.is_active == False:
+        return Response('User is inactive', status=status.HTTP_400_BAD_REQUEST)
+
+    serializer_context = {
+        'request': request,
+    }
+
+    result = ChatRoom.objects.filter(Q(user1=user) | Q(user2=user))
+    serializer = ChatRoomSerializer(result,
+                                    many=True,
+                                    context=serializer_context)
+
+    return Response(serializer.data)

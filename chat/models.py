@@ -26,8 +26,21 @@ class ChatRoom(models.Model):
         blank=False,
     )
 
+    # first user of the chat room
+    user1 = models.ForeignKey(User,
+                              related_name='user1',
+                              on_delete=models.CASCADE,
+                              null=False)
+
+    # second user of the chat room
+    user2 = models.ForeignKey(User,
+                              related_name='user2',
+                              on_delete=models.CASCADE,
+                              null=False)
+
     # last message of the chat room
     last_chat_message = models.ForeignKey('ChatMessage',
+                                          related_name='last_chat_message',
                                           on_delete=models.CASCADE,
                                           null=True)
 

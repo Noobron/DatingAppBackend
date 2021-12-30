@@ -17,13 +17,17 @@ def update_chat_db(messages, username1, username2):
     if user1 is None or user2 is None:
         return
 
-    chat_room_name = min(user1.username, user2.username) + '_' + max(
-        user1.username, user2.username) + '_chat'
+    if user1.username > user2.username:
+        user1, user2 = user2, user1
+
+    chat_room_name = user1.username + '_' + user2.username + '_chat'
 
     chat_room = ChatRoom.objects.filter(chat_room_name=chat_room_name).first()
 
     if chat_room is None:
-        chat_room = ChatRoom(chat_room_name=chat_room_name)
+        chat_room = ChatRoom(chat_room_name=chat_room_name,
+                             user1=user1,
+                             user2=user2)
         chat_room.save()
 
     last_chat_message = None
