@@ -21,25 +21,26 @@ def get_chat_messages(request, *args, **kwargs):
     Gets unread (with additional) chat messages of a chat room
     """
 
-    user1 = request.query_params.get('user1')
-    user2 = request.query_params.get('user2')
+    other_user = request.query_params.get('other_user')
+    current_user = request.user
 
-    if user1 is None or user2 is None:
+    if other_user is None:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    user1 = get_object_or_404(User, username=user1.strip())
-    user2 = get_object_or_404(User, username=user2.strip())
+    other_user = get_object_or_404(User, username=other_user.strip())
 
-    chat_room_name = min(user1.username, user2.username) + '_' + max(
-        user1.username, user2.username) + '_chat'
+    chat_room_name = min(
+        other_user.username, current_user.username) + '_' + max(
+            other_user.username, current_user.username) + '_chat'
 
-    chat_room = get_object_or_404(ChatRoom, chat_room_name=chat_room_name)
+    chat_room = ChatRoom.objects.filter(chat_room_name=chat_room_name).first()
 
     serializer_context = {
         'request': request,
     }
 
-    data = ChatMessage.objects.filter(chat_room=chat_room)
+    data = ChatMessage.objects.filter(
+        chat_room=chat_room).order_by('-created_at')
     paginator = ChatMessagePagination()
     result = paginator.paginate_queryset(data, request)
     serializer = ChatMessageSerializer(result,
@@ -53,21 +54,22 @@ def get_chat_messages(request, *args, **kwargs):
 @permission_classes([IsAuthenticated])
 def mark_chat_message_as_seen(request, *args, **kwargs):
     """
-    Marks all unread chat messages of a chat room as seen
+    Marks all unread chat messages stored in database of a chat room as seen
     """
 
     try:
 
-        user1 = request.data['user1']
+        other_user = request.data['other_user']
+        current_user = request.user
 
-        user2 = request.data['user2']
+        if other_user is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
-        user1 = get_object_or_404(User, username=user1.strip())
+        other_user = get_object_or_404(User, username=other_user.strip())
 
-        user2 = get_object_or_404(User, username=user2.strip())
-
-        chat_room_name = min(user1.username, user2.username) + '_' + max(
-            user1.username, user2.username) + '_chat'
+        chat_room_name = min(
+            other_user.username, current_user.username) + '_' + max(
+                other_user.username, current_user.username) + '_chat'
 
         chat_room = get_object_or_404(ChatRoom, chat_room_name=chat_room_name)
 
@@ -79,7 +81,7 @@ def mark_chat_message_as_seen(request, *args, **kwargs):
             chat_message.save()
 
     except KeyError:
-        return Response('Please provide exactly two users',
+        return Response('Please provide the other user of the chat room',
                         status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response('Sorry, something went wrong. Please try again later',

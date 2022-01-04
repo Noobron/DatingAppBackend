@@ -120,10 +120,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.chat_feed_other_user_device_count)
 
         if other_user_chat_feed_device_count is None:
-            self.cache.set(self.chat_feed_other_user_device_count, 1)
+            await self.cache.set(self.chat_feed_other_user_device_count, 1)
         else:
-            self.cache.set(self.chat_feed_other_user_device_count,
-                           other_user_chat_feed_device_count + 1)
+            await self.cache.set(self.chat_feed_other_user_device_count,
+                                 other_user_chat_feed_device_count + 1)
+
+        channel_user_chat_feed_device_count = await self.cache.get(
+            self.chat_feed_channel_user_device_count)
+
+        if channel_user_chat_feed_device_count is None:
+            await self.cache.set(self.chat_feed_channel_user_device_count, 1)
+        else:
+            await self.cache.set(self.chat_feed_channel_user_device_count,
+                                 channel_user_chat_feed_device_count + 1)
 
     # Remove current client's device from the chat room and sync the chat with database if no user belonging to the chat room is online
     async def remove_device(self):
@@ -140,7 +149,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         'user_not_available': self.channel_user.username
                     })
 
-                await self.sync_chat_with_database()
+                other_count = await self.cache.get(
+                    self.chat_other_user_device_count)
+
+                if other_count is None or other_count < 1:
+                    await self.sync_chat_with_database()
 
             else:
                 await self.cache.set(self.chat_channel_user_device_count,
@@ -152,11 +165,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if other_user_chat_feed_device_count is not None:
 
             if other_user_chat_feed_device_count <= 1:
-                self.cache.delete(self.chat_feed_other_user_device_count)
-                self.cache.delete(self.chat_feed_other_user_store)
+                await self.cache.delete(self.chat_feed_other_user_device_count)
+                await self.cache.delete(self.chat_feed_other_user_store)
             else:
-                self.cache.set(self.chat_feed_other_user_device_count,
-                               other_user_chat_feed_device_count - 1)
+                await self.cache.set(self.chat_feed_other_user_device_count,
+                                     other_user_chat_feed_device_count - 1)
+
+        channel_user_chat_feed_device_count = await self.cache.get(
+            self.chat_feed_channel_user_device_count)
+
+        if channel_user_chat_feed_device_count is not None:
+
+            if channel_user_chat_feed_device_count <= 1:
+                await self.cache.delete(
+                    self.chat_feed_channel_user_device_count)
+                await self.cache.delete(self.chat_feed_channel_user_store)
+            else:
+                await self.cache.set(self.chat_feed_channel_user_device_count,
+                                     channel_user_chat_feed_device_count - 1)
 
     # Send message to group and update message store on receiving message from client
     async def receive(self, text_data=None, bytes_data=None):
@@ -165,18 +191,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             data_json = json.loads(text_data)
 
-            content = data_json['data']
+            try:
 
-            content['recipient'] = self.other_user.username
+                content = data_json['data']
 
-            content['sender'] = self.channel_user.username
+                content['recipient'] = self.other_user.username
 
-            count = await self.cache.get(self.chat_other_user_device_count)
+                content['sender'] = self.channel_user.username
 
-            if count is not None and count > 0:
-                content['seen'] = True
-            else:
-                content['seen'] = False
+                count = await self.cache.get(self.chat_other_user_device_count)
+
+                if count is not None and count > 0:
+                    content['seen'] = True
+                else:
+                    content['seen'] = False
+
+            except KeyError:
+                return
 
             await self.channel_layer.group_send(self.chat_room_name, {
                 'type': 'message',
@@ -209,7 +240,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             channel_user_chat_feed = {} if channel_user_chat_feed is None else channel_user_chat_feed
 
-            if self.channel_user.username in other_user_chat_feed:
+            if self.channel_user.username in other_user_chat_feed and self.other_user.username in channel_user_chat_feed:
                 other_user_chat_feed[
                     self.channel_user.username]['lastChatMessage'] = content
 
@@ -258,23 +289,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.send(text_data=json.dumps({
             'type': 'message',
-            'content': content
-        }))
-
-    async def reject_connection(self, event):
-        reject_message = event['reject_message']
-
-        await self.send(text_data=json.dumps({
-            'type': 'reject',
-            'reject_message': reject_message
-        }))
-
-    async def accept_connection(self, event):
-        accept_message = event['accept_message']
-
-        await self.send(text_data=json.dumps({
-            'type': 'accept',
-            'accept_message': accept_message
+            'chat_message': content
         }))
 
     async def availability(self, event):
@@ -322,10 +337,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.personal_group = re.sub(r'[^0-9a-zA-Z]+', '-',
                                      self.channel_name) + "_personal_group"
 
-        await self.channel_layer.group_add(self.personal_group,
-                                           self.channel_name)
-
-        await self.accept()
 
         if self.scope['user'] != AnonymousUser and \
             self.scope['user'].username.lower() == user_name_1 or self.scope['user'].username.lower() == user_name_2:
@@ -338,26 +349,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.other_user = await self.get_user(user_name_2)
 
             if self.other_user == AnonymousUser:
-                await self.channel_layer.group_send(
-                    self.personal_group, {
-                        'type': 'reject_connection',
-                        'reject_message': 'connection refused'
-                    })
-
-                await self.channel_layer.group_discard(self.personal_group,
-                                                       self.channel_name)
+                await self.close()
                 return
 
-            await self.channel_layer.group_send(
-                self.personal_group, {
-                    'type': 'accept_connection',
-                    'accept_message': 'connection accepted'
-                })
+            await self.channel_layer.group_add(self.personal_group,
+                                               self.channel_name)
+
+            await self.accept()
 
             self.chat_room_name = min(self.channel_user.username,
                                       self.other_user.username) + '_' + max(
                                           self.channel_user.username,
-                                          self.other_user.username)
+                                          self.other_user.username) + '_chat'
 
             self.chat_channel_user_device_count = self.chat_room_name + '_' + self.channel_user.username + '_device_count'
 
@@ -370,6 +373,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.chat_feed_other_user_store = self.other_user.username + '_chat_feed_store'
 
             self.chat_feed_other_user_device_count = self.other_user.username + '_chat_feed_device_count'
+
+            self.chat_feed_channel_user_device_count = self.channel_user.username + '_chat_feed_device_count'
 
             self.chat_feed_channel_user = self.channel_user.username + '_chat_feed'
 
@@ -390,11 +395,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             await self.add_device()
         else:
-            await self.channel_layer.group_send(
-                self.personal_group, {
-                    'type': 'reject_connection',
-                    'reject_message': 'connection refused'
-                })
+            await self.close()
+            return
 
         await self.channel_layer.group_discard(self.personal_group,
                                                self.channel_name)
@@ -408,6 +410,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.chat_room_name,
                                                self.channel_name)
 
+        await self.channel_layer.group_discard(self.chat_feed_other_user,
+                                               self.channel_name)
+
+        await self.channel_layer.group_discard(self.chat_feed_channel_user,
+                                               self.channel_name)
+
 
 class ChatFeedConsumer(AsyncWebsocketConsumer):
     """
@@ -416,22 +424,6 @@ class ChatFeedConsumer(AsyncWebsocketConsumer):
     def __init__(self):
         self.cache = Cache("redis://" + settings.REDIS_HOST)
         super().__init__()
-
-    async def reject_connection(self, event):
-        reject_message = event['reject_message']
-
-        await self.send(text_data=json.dumps({
-            'type': 'reject',
-            'reject_message': reject_message
-        }))
-
-    async def accept_connection(self, event):
-        accept_message = event['accept_message']
-
-        await self.send(text_data=json.dumps({
-            'type': 'accept',
-            'accept_message': accept_message
-        }))
 
     async def sync_client(self):
         feeds = await self.cache.get(self.chat_feed_channel_user_store)
@@ -466,24 +458,14 @@ class ChatFeedConsumer(AsyncWebsocketConsumer):
         self.personal_group = re.sub(r'[^0-9a-zA-Z]+', '-',
                                      self.channel_name) + "_personal_group"
 
+        if self.scope['user'] == AnonymousUser:
+            await self.close()
+            return
+
         await self.channel_layer.group_add(self.personal_group,
                                            self.channel_name)
 
         await self.accept()
-
-        if self.scope['user'] == AnonymousUser:
-            await self.channel_layer.group_send(
-                self.personal_group, {
-                    'type': 'reject_connection',
-                    'reject_message': 'connection refused'
-                })
-            return
-
-        await self.channel_layer.group_send(
-            self.personal_group, {
-                'type': 'accept_connection',
-                'accept_message': 'connection accepted'
-            })
 
         self.channel_user = self.scope['user']
 
@@ -495,15 +477,15 @@ class ChatFeedConsumer(AsyncWebsocketConsumer):
 
         await self.sync_client()
 
+        await self.channel_layer.group_discard(self.personal_group,
+                                               self.channel_name)
+
         await self.channel_layer.group_add(self.chat_feed_channel_user,
                                            self.channel_name)
 
     async def disconnect(self, code):
 
         await self.cache.disconnect()
-
-        await self.channel_layer.group_discard(self.personal_group,
-                                               self.channel_name)
 
         await self.channel_layer.group_discard(self.chat_feed_channel_user,
                                                self.channel_name)

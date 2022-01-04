@@ -60,13 +60,16 @@ class ChatMessagePagination(pagination.LimitOffsetPagination):
 
         count = queryset.filter(seen=False).count()
 
-        limit_ = int(limit.strip(
-        )) if limit is not None and limit.strip().isnumeric() else None
+        _limit = None
 
-        if count > 0 and (limit_ is None or count > limit_):
+        if limit is not None:
+            _limit = limit if type(limit) == int else int(
+                limit.strip()) if limit.strip().isnumeric() else None
+
+        if count > 0 and (_limit is None or count > _limit):
             if not request.GET._mutable:
                 request.GET._mutable = True
-            request.GET['limit'] = count
+            request.GET['limit'] = str(count)
 
         return super(self.__class__,
                      self).paginate_queryset(queryset, request, view)

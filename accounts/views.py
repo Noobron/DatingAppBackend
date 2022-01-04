@@ -98,6 +98,7 @@ def register(request, *args, **kwargs):
             gender=str(request.data['gender']),
             date_of_birth=date,
             check_for_validation=True)
+            
     except ValidationError as e:
         return Response(e, status=status.HTTP_400_BAD_REQUEST)
     except ValueError as e:
