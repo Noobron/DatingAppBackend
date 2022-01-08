@@ -9,6 +9,7 @@ from django.contrib.postgres.fields import CICharField
 
 from DatingAppBackend import settings
 
+
 def calculate_age(born):
     """
     Calculates age
@@ -146,10 +147,8 @@ class User(AbstractBaseUser):
     country = models.CharField(max_length=40, null=True, blank=True)
 
     # main photo (URL) of the user
-    main_photo = models.URLField(
-        default=
-        settings.DEFAULT_PROFILE_URL,
-        max_length=1000)
+    main_photo = models.URLField(default=settings.DEFAULT_PROFILE_URL,
+                                 max_length=1000)
 
     # field to get user activation status
     is_active = models.BooleanField(default=True)
@@ -157,7 +156,7 @@ class User(AbstractBaseUser):
     # whether current user is having staff permissions
     is_staff = models.BooleanField(default=False)
 
-    # The `USERNAME_FIELD` property sets username field to be required for logging in.
+    # the `USERNAME_FIELD` property sets username field to be required for logging in.
     USERNAME_FIELD = 'username'
 
     # instance of `UseManager` will manage objects of `User` type
@@ -195,3 +194,19 @@ class Photo(models.Model):
 
     # public ID of the image associated with Cloudinary
     public_id = models.CharField(max_length=100, unique=True)
+
+
+class Likes(models.Model):
+    """ 
+    Class for storing information regarding likes made by `User`s
+    """
+
+    # user who liked
+    liked_by = models.ForeignKey(User,
+                                 on_delete=models.CASCADE,
+                                 related_name='liked_by')
+
+    # user who was liked
+    liked_on = models.ForeignKey(User,
+                                 on_delete=models.CASCADE,
+                                 related_name='liked_on')

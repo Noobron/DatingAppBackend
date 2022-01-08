@@ -1,5 +1,6 @@
 from datetime import datetime
-from django.http.response import HttpResponse
+import re
+from django.http.response import Http404, HttpResponse
 import requests
 import imghdr
 from django.shortcuts import get_object_or_404
@@ -10,7 +11,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .models import Photo, User
+from .models import Likes, Photo, User
 
 from .serializers import PhotoSerializer, UserSerializer, TokenObtainPairSerializer, TokenRefreshSerializer
 
@@ -61,6 +62,7 @@ def get_photos(request, name, *args, **kwargs):
     """
     Gets a batch of `Photo`s of a `User`
     """
+
     user = get_object_or_404(User, username=name)
 
     if (user.is_staff
@@ -73,6 +75,37 @@ def get_photos(request, name, *args, **kwargs):
     serializer = PhotoSerializer(result, many=True)
 
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+def has_liked(request, name, *args, **kwargs):
+    """
+    Check whether current `User` has liked the given `User`
+    """
+
+    user = request.user
+
+    result = False
+
+    try:
+
+        liked_on = get_object_or_404(User, username=name)
+
+        if liked_on.is_active == False:
+            raise Http404
+
+        if Likes.objects.filter(liked_by=user,
+                                liked_on=liked_on).first() is not None:
+            result = True
+
+    except Http404:
+        return Response('User does not exists or is inactive',
+                        status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response('Sorry, something went wrong. Please try again later',
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response(result)
 
 
 @api_view(['POST'])
@@ -98,7 +131,7 @@ def register(request, *args, **kwargs):
             gender=str(request.data['gender']),
             date_of_birth=date,
             check_for_validation=True)
-            
+
     except ValidationError as e:
         return Response(e, status=status.HTTP_400_BAD_REQUEST)
     except ValueError as e:
@@ -152,6 +185,74 @@ def add_photo(request, *args, **kwargs):
     })
 
 
+@api_view(['PUT'])
+def like_user(request, *args, **kwargs):
+    """
+    Like a `User`
+    """
+
+    user = request.user
+
+    data = request.data
+
+    try:
+        to_be_liked = get_object_or_404(User, username=data['to_be_liked'])
+
+        if to_be_liked.is_active == False:
+            raise Http404
+
+        if Likes.objects.filter(liked_by=user,
+                                liked_on=to_be_liked).first() is None:
+            like = Likes(liked_by=user, liked_on=to_be_liked)
+            like.save()
+
+    except KeyError:
+        return Response('Please send a valid username in body',
+                        status=status.HTTP_400_BAD_REQUEST)
+    except Http404:
+        return Response('User does not exists or is inactive',
+                        status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response('Sorry, something went wrong. Please try again later',
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['PUT'])
+def unlike_user(request, *args, **kwargs):
+    """
+    Unlike a `User`
+    """
+
+    user = request.user
+
+    data = request.data
+
+    try:
+        liked_on = get_object_or_404(User, username=data['liked_on'])
+
+        if liked_on.is_active == False:
+            raise Http404
+
+        like = Likes.objects.filter(liked_by=user, liked_on=liked_on).first()
+
+        if like is not None:
+            like.delete()
+
+    except KeyError:
+        return Response('Please send a valid username in body',
+                        status=status.HTTP_400_BAD_REQUEST)
+    except Http404:
+        return Response('User does not exists or is inactive',
+                        status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response('Sorry, something went wrong. Please try again later',
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 def is_url_image(image_url):
     image_formats = ("image/png", "image/jpeg", "image/jpg")
     r = requests.head(image_url)
@@ -167,7 +268,7 @@ def edit_profile(request, *args, **kwargs):
     Edit profile details of `User`
     """
 
-    user = get_object_or_404(User, pk=request.user.id)
+    user = request.user
 
     data = request.data
 

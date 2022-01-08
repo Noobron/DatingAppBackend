@@ -46,12 +46,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def sync_client(self):
         messages = await self.cache.get(self.chat_message_store)
 
-        other_user_chat_feed = await self.cache.get(
-            self.chat_feed_other_user_store)
-
-        channel_user_chat_feed = await self.cache.get(
-            self.chat_feed_channel_user_store)
-
         updates = False
 
         if messages is not None:
@@ -71,6 +65,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if updates == True:
             await self.cache.set(self.chat_message_store, messages)
 
+            other_user_chat_feed = await self.cache.get(
+                self.chat_feed_other_user_store)
+
+            channel_user_chat_feed = await self.cache.get(
+                self.chat_feed_channel_user_store)
+
             other_user_chat_feed = {} if other_user_chat_feed is None else other_user_chat_feed
 
             channel_user_chat_feed = {} if channel_user_chat_feed is None else channel_user_chat_feed
@@ -83,14 +83,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             await self.channel_layer.group_send(
                 self.chat_feed_other_user, {
-                    'type': 'update',
-                    'seen': self.channel_user.username
+                    'type':
+                    'update',
+                    'seen':
+                    other_user_chat_feed[self.channel_user.username]
+                    ['lastChatMessage']['recipient']
                 })
 
             await self.channel_layer.group_send(
                 self.chat_feed_channel_user, {
-                    'type': 'update',
-                    'seen': self.other_user.username
+                    'type':
+                    'update',
+                    'seen':
+                    channel_user_chat_feed[self.other_user.username]
+                    ['lastChatMessage']['recipient']
                 })
 
             await self.cache.set(self.chat_feed_other_user_store,
@@ -195,6 +201,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
                 content = data_json['data']
 
+                if len(content['content'].strip()) == 0:
+                    return
+
                 content['recipient'] = self.other_user.username
 
                 content['sender'] = self.channel_user.username
@@ -206,7 +215,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 else:
                     content['seen'] = False
 
-            except KeyError:
+            except Exception:
                 return
 
             await self.channel_layer.group_send(self.chat_room_name, {
