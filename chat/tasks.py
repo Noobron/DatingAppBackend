@@ -3,7 +3,7 @@ from dateutil import parser
 
 from accounts.models import User
 
-from chat.models import ChatMessage, ChatRoom
+from chat.models import ChatMessage, ChatRoom, MESSAGE_TYPE
 
 
 # Update db by running the celery task
@@ -73,6 +73,16 @@ def update_chat_db(messages, username1, username2):
                                        seen=seen,
                                        content=content,
                                        chat_room=chat_room)
+
+            is_valid_type = False
+
+            for allowed_type in MESSAGE_TYPE:
+                if allowed_type[0].lower() == message_type.lower():
+                    is_valid_type = True
+                    break
+
+            if is_valid_type == False:
+                continue
 
             chat_message.full_clean()
 
