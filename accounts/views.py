@@ -89,13 +89,19 @@ def has_liked(request, name, *args, **kwargs):
 
     try:
 
-        liked_on = get_object_or_404(User, username=name)
+        other_user = get_object_or_404(User, username=name)
 
-        if liked_on.is_active == False:
+        if other_user.is_active == False:
             raise Http404
 
-        if Likes.objects.filter(liked_by=user,
-                                liked_on=liked_on).first() is not None:
+        inverse = request.query_params.get('inverse')
+
+        if inverse is not None and Likes.objects.filter(
+                liked_by=other_user, liked_on=user).first() is not None:
+            result = True
+
+        elif Likes.objects.filter(liked_by=user,
+                                  liked_on=other_user).first() is not None:
             result = True
 
     except Http404:
